@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.webside.org.mapper.OrgMapper">
+	
+	<!--mybatis ehcache缓存配置,以下两个<cache>标签二选一,第一个可以输出日志,第二个不输出日志 -->
+	 
+	<cache type="org.mybatis.caches.ehcache.LoggingEhcache"/> 
+	 
+	<!-- <cache type="org.mybatis.caches.ehcache.EhcacheCache"/> -->
+
+	<sql id="orgAttributes">
+		o_id,
+		o_parent_id,
+		o_name,
+		o_level,
+		o_description,
+		o_create_time,
+		o_update_time
+	</sql>
+
+	<resultMap id="orgMap" type="com.webside.org.model.OrgEntity">
+		<id property="id" column="o_id"/>
+		<result property="parentId" column="o_parent_id"/>
+		<result property="name" column="o_name"/>
+		<result property="level" column="o_level"/>
+		<result property="description" column="o_description"/>
+		<result property="createTime" column="o_create_time"/>
+		<result property="updateTime" column="o_update_time"/>
+		<result property="parentName" column="o_parentName"/>
+		<result property="selected" column="o_selected"/>
+	</resultMap>
+	
+	<select id="queryListByPage" parameterType="map" resultMap="orgMap" flushCache="true" useCache="true">
+		SELECT t1.o_id,
+			t1.o_parent_id,
+			t1.o_name,
+			t2.o_name AS o_parentName,
+			t1.o_level,
+			t1.o_description,
+			t1.o_create_time,
+			t1.o_update_time 
+		FROM tb_org t1 LEFT JOIN tb_org t2 ON t1.o_parent_id = t2.o_id
+		<where>
+			<if test="name != null and name != ''">
+				and t1.o_name=#{name}
+			</if>
+		</where>
+	</select>
+	
+	<insert id="insert" parameterType="com.webside.org.model.OrgEntity" useGeneratedKeys="true" keyProperty="id">
+		insert into tb_org (
+		<if test="parentId neq null">
+			o_parent_id,
+		</if>
+			o_name,
+			o_description,
+			o_create_time
+			)   
+		values (
+		<if test="parentId neq null">
+			${parentId},
+		</if>
+			#{name},
+			#{description},
+			#{createTime}
+			)  
+	</insert>
+	
+	<select id="findById" parameterType="long" resultMap="orgMap" useCache="false">
+		SELECT t1.o_id,
+			t1.o_parent_id,
+			t1.o_name,
+			t2.o_name AS o_parentName,
+			t1.o_level,
+			t1.o_description,
+			t1.o_create_time,
+			t1.o_update_time 
+		FROM tb_org t1 LEFT JOIN tb_org t2 ON t1.o_parent_id = t2.o_id
+		where t1.o_id = ${id}
+	</select>
+	
+	<update id="update" parameterType="com.webside.org.model.OrgEntity" flushCache="true">
+		update tb_org set
+		<choose>
+			<when test="parentId eq null">o_parent_id = null,</when>
+			<otherwise>o_parent_id = ${parentId},</otherwise>
+		</choose>
+		o_name = #{name},
+		o_description = #{description}
+		where o_id = ${id}
+	</update>
+	
+	<delete id="deleteBatchById" parameterType="list">
+		<![CDATA[  
+       delete from tb_org where o_id in  
+    	]]>  
+	    <foreach collection="list" item = "id" open="(" separator="," close=")">
+	    #{id}  
+	    </foreach>  
+	</delete>
+</mapper>
